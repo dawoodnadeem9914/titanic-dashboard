@@ -3,10 +3,35 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# Page settings
 st.set_page_config(
-    page_title="Titanic Passenger Insights",
+    page_title="Titanic Data Explorer",
+    page_icon="🚢",
     layout="wide"
 )
+
+# Custom styling
+st.markdown("""
+<style>
+.main .block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    max-width: 1500px;
+}
+h1 {
+    color: #183B56;
+}
+h2, h3 {
+    color: #245B75;
+}
+[data-testid="stMetric"] {
+    background: #F0F6FA;
+    padding: 18px;
+    border-radius: 12px;
+    border-left: 4px solid #249E9A;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Load dataset
 df = pd.read_csv("train.csv")
@@ -31,11 +56,11 @@ df["Status"] = df["Survived"].map({
     1: "Survived"
 })
 
-# Sidebar filters
+# Sidebar
 st.sidebar.title("Dashboard Filters")
 
 selected_class = st.sidebar.multiselect(
-    "Passenger Class",
+    "Select Passenger Class",
     [1, 2, 3],
     default=[1, 2, 3]
 )
@@ -43,42 +68,71 @@ selected_class = st.sidebar.multiselect(
 df = df[df["Pclass"].isin(selected_class)]
 
 if df.empty:
-    st.warning("Please select at least one passenger class.")
+    st.warning("Please select at least one class.")
     st.stop()
 
 # Colours
 colors = {
     "Did Not Survive": "#E76F51",
-    "Survived": "#2A9D8F"
+    "Survived": "#249E9A"
 }
 
-# Dashboard heading
-st.title("Titanic Passenger Insights")
+# Common chart layout
+def chart_style(fig):
+    fig.update_layout(
+        template="plotly_white",
+        height=350,
+        font=dict(
+            family="Arial",
+            size=13,
+            color="#29465B"
+        ),
+        margin=dict(l=45, r=35, t=35, b=45),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(
+        gridcolor="#E5EDF2",
+        zeroline=False
+    )
+    return fig
 
+# Dashboard title
+st.title("Titanic Data Explorer")
 st.write(
-    "Discover how passenger class, gender, "
-    "boarding location and family size relate to survival."
+    "An overview of passenger survival, "
+    "gender, class, boarding location and family size."
 )
 
-# Summary numbers
+st.divider()
+
+# Key metrics
 total = len(df)
 survivors = int(df["Survived"].sum())
 deaths = total - survivors
-survival_rate = survivors / total * 100
+rate = survivors / total * 100
 
 a, b, c, d = st.columns(4)
 
-a.metric("Passengers", total)
-b.metric("Survivors", survivors)
-c.metric("Deaths", deaths)
-d.metric("Survival Rate", f"{survival_rate:.1f}%")
+a.metric("Total Passengers", f"{total:,}")
+b.metric("Survivors", f"{survivors:,}")
+c.metric("Deaths", f"{deaths:,}")
+d.metric("Survival Rate", f"{rate:.1f}%")
 
 st.divider()
 
 # First row
-col1, col2 = st.columns(2)
+col1, col2 = st.columns(2, gap="large")
 
-# Chart 1: Survival Rate by Class
+# Chart 1: Survival by Class
 with col1:
     st.subheader("Survival Rate by Class")
 
@@ -92,39 +146,41 @@ with col1:
         class_data["Survived"] * 100
     )
 
-    class_data["Class"] = class_data["Pclass"].map({
-        1: "First Class",
-        2: "Second Class",
-        3: "Third Class"
-    })
+    class_data["Passenger Class"] = (
+        class_data["Pclass"].map({
+            1: "First Class",
+            2: "Second Class",
+            3: "Third Class"
+        })
+    )
 
     fig1 = px.bar(
         class_data,
-        x="Survival Rate",
-        y="Class",
-        orientation="h",
+        x="Passenger Class",
+        y="Survival Rate",
         text="Survival Rate",
-        color="Class",
-        color_discrete_sequence=[
-            "#264653",
-            "#2A9D8F",
-            "#E9C46A"
-        ]
+        color="Passenger Class",
+        color_discrete_map={
+            "First Class": "#245B75",
+            "Second Class": "#249E9A",
+            "Third Class": "#76B7B2"
+        }
     )
 
     fig1.update_traces(
         texttemplate="%{text:.1f}%",
-        textposition="outside"
+        textposition="outside",
+        cliponaxis=False
     )
 
     fig1.update_layout(
-        xaxis_title="Survival Rate (%)",
-        yaxis_title="Passenger Class",
         showlegend=False,
-        height=340,
-        margin=dict(t=35, b=40)
+        yaxis_title="Survival Rate (%)",
+        xaxis_title="Passenger Class",
+        yaxis_range=[0, 80]
     )
 
+    chart_style(fig1)
     st.plotly_chart(fig1, use_container_width=True)
 
 # Chart 2: Survival by Gender
@@ -137,36 +193,36 @@ with col2:
         .reset_index(name="Passengers")
     )
 
-    gender_data["Percentage"] = (
-        gender_data.groupby("Sex")["Passengers"]
-        .transform(lambda x: x / x.sum() * 100)
-    )
-
     fig2 = px.bar(
         gender_data,
         x="Sex",
-        y="Percentage",
+        y="Passengers",
         color="Status",
-        text=gender_data["Percentage"].round(1).astype(str) + "%",
-        barmode="stack",
-        color_discrete_map=colors
+        barmode="group",
+        text="Passengers",
+        color_discrete_map=colors,
+        category_orders={
+            "Status": ["Survived", "Did Not Survive"]
+        }
+    )
+
+    fig2.update_traces(
+        textposition="outside",
+        cliponaxis=False
     )
 
     fig2.update_layout(
         xaxis_title="Gender",
-        yaxis_title="Percentage of Passengers (%)",
-        yaxis_range=[0, 100],
-        height=340,
-        legend_title="Outcome",
-        margin=dict(t=35, b=40)
+        yaxis_title="Number of Passengers"
     )
 
+    chart_style(fig2)
     st.plotly_chart(fig2, use_container_width=True)
 
 # Second row
-col3, col4 = st.columns(2)
+col3, col4 = st.columns(2, gap="large")
 
-# Chart 3: Passengers by Boarding Port
+# Chart 3: Boarding Port
 with col3:
     st.subheader("Passengers by Boarding Port")
 
@@ -185,21 +241,25 @@ with col3:
         text="Passengers",
         color="Port",
         color_discrete_sequence=[
-            "#457B9D",
-            "#A8DADC",
-            "#1D3557",
-            "#F4A261"
+            "#183B56",
+            "#249E9A",
+            "#76B7B2",
+            "#E9C46A"
         ]
+    )
+
+    fig3.update_traces(
+        textposition="outside",
+        cliponaxis=False
     )
 
     fig3.update_layout(
         xaxis_title="Number of Passengers",
         yaxis_title="Boarding Port",
-        showlegend=False,
-        height=340,
-        margin=dict(t=35, b=40)
+        showlegend=False
     )
 
+    chart_style(fig3)
     st.plotly_chart(fig3, use_container_width=True)
 
 # Chart 4: Survival by Family Size
@@ -225,19 +285,27 @@ with col4:
                 "Alone",
                 "Small Family",
                 "Large Family"
+            ],
+            "Status": [
+                "Survived",
+                "Did Not Survive"
             ]
         }
     )
 
-    fig4.update_layout(
-        xaxis_title="Family Group",
-        yaxis_title="Number of Passengers",
-        height=340,
-        legend_title="Outcome",
-        margin=dict(t=35, b=40)
+    fig4.update_traces(
+        textposition="outside",
+        cliponaxis=False
     )
 
+    fig4.update_layout(
+        xaxis_title="Family Group",
+        yaxis_title="Number of Passengers"
+    )
+
+    chart_style(fig4)
     st.plotly_chart(fig4, use_container_width=True)
 
-# Data source
-st.caption("Dataset Source: Kaggle Titanic Dataset")
+# Footer
+st.divider()
+st.caption("Data Source: Kaggle Titanic Dataset")
