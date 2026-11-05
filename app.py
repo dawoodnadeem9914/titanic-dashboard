@@ -5,13 +5,14 @@ import plotly.express as px
 
 st.set_page_config(
     page_title="Titanic Survival Dashboard",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # Load dataset
 df = pd.read_csv("train.csv")
 
-# Sidebar filter
+# Sidebar
 st.sidebar.title("Filter Options")
 
 classes = st.sidebar.multiselect(
@@ -22,7 +23,7 @@ classes = st.sidebar.multiselect(
 
 df = df[df["Pclass"].isin(classes)]
 
-# Dashboard title
+# Title
 st.title("Passengers & Survival Patterns")
 st.write("Explore how gender, class and age affected survival.")
 
@@ -44,7 +45,7 @@ c.metric("Survival Rate", f"{rate:.1f}%")
 
 st.divider()
 
-# Survival labels
+# Survival labels and colours
 df["Survival Status"] = df["Survived"].map({
     0: "Died",
     1: "Survived"
@@ -55,8 +56,18 @@ colors = {
     "Survived": "#35B779"
 }
 
+# Common chart design
+def style_chart(fig):
+    fig.update_layout(
+        height=300,
+        font=dict(size=12),
+        margin=dict(l=35, r=25, t=35, b=40),
+        legend_title_text="Status"
+    )
+    return fig
+
 # First row
-col1, col2 = st.columns(2)
+col1, col2 = st.columns(2, gap="large")
 
 # Chart 1: Overall Survival
 with col1:
@@ -82,8 +93,10 @@ with col1:
     )
 
     fig1.update_layout(
+        height=300,
         showlegend=False,
-        margin=dict(t=30, b=20)
+        font=dict(size=13),
+        margin=dict(l=20, r=20, t=25, b=20)
     )
 
     st.plotly_chart(fig1, use_container_width=True)
@@ -111,21 +124,19 @@ with col2:
         }
     )
 
-    fig2.update_traces(
-        textposition="outside"
-    )
+    fig2.update_traces(textposition="outside")
 
     fig2.update_layout(
         xaxis_title="Gender",
-        yaxis_title="Number of Passengers",
-        legend_title="Status",
-        margin=dict(t=30, b=20)
+        yaxis_title="Passengers",
+        barmode="group"
     )
 
+    style_chart(fig2)
     st.plotly_chart(fig2, use_container_width=True)
 
 # Second row
-col3, col4 = st.columns(2)
+col3, col4 = st.columns(2, gap="large")
 
 # Chart 3: Survival by Class
 with col3:
@@ -150,17 +161,14 @@ with col3:
         }
     )
 
-    fig3.update_traces(
-        textposition="outside"
-    )
+    fig3.update_traces(textposition="outside")
 
     fig3.update_layout(
         xaxis_title="Passenger Class",
-        yaxis_title="Number of Passengers",
-        legend_title="Status",
-        margin=dict(t=30, b=20)
+        yaxis_title="Passengers"
     )
 
+    style_chart(fig3)
     st.plotly_chart(fig3, use_container_width=True)
 
 # Chart 4: Age Distribution
@@ -174,18 +182,16 @@ with col4:
         x="Age",
         color="Survival Status",
         barmode="group",
-        nbins=20,
+        nbins=15,
         color_discrete_map=colors
     )
 
     fig4.update_layout(
         xaxis_title="Age",
-        yaxis_title="Number of Passengers",
-        legend_title="Status",
-        margin=dict(t=30, b=20)
+        yaxis_title="Passengers"
     )
 
+    style_chart(fig4)
     st.plotly_chart(fig4, use_container_width=True)
 
-# Data source
 st.caption("Source: Kaggle Titanic Dataset")
