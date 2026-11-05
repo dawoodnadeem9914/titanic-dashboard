@@ -31,7 +31,7 @@ df["Status"] = df["Survived"].map({
     1: "Survived"
 })
 
-# Sidebar
+# Sidebar filters
 st.sidebar.title("Dashboard Filters")
 
 selected_class = st.sidebar.multiselect(
@@ -43,7 +43,7 @@ selected_class = st.sidebar.multiselect(
 df = df[df["Pclass"].isin(selected_class)]
 
 if df.empty:
-    st.warning("Please select a passenger class.")
+    st.warning("Please select at least one passenger class.")
     st.stop()
 
 # Colours
@@ -54,6 +54,7 @@ colors = {
 
 # Dashboard heading
 st.title("Titanic Passenger Insights")
+
 st.write(
     "Discover how passenger class, gender, "
     "boarding location and family size relate to survival."
@@ -87,7 +88,9 @@ with col1:
         .reset_index()
     )
 
-    class_data["Survival Rate"] *= 100
+    class_data["Survival Rate"] = (
+        class_data["Survived"] * 100
+    )
 
     class_data["Class"] = class_data["Pclass"].map({
         1: "First Class",
@@ -103,7 +106,9 @@ with col1:
         text="Survival Rate",
         color="Class",
         color_discrete_sequence=[
-            "#264653", "#2A9D8F", "#E9C46A"
+            "#264653",
+            "#2A9D8F",
+            "#E9C46A"
         ]
     )
 
@@ -116,7 +121,8 @@ with col1:
         xaxis_title="Survival Rate (%)",
         yaxis_title="Passenger Class",
         showlegend=False,
-        height=340
+        height=340,
+        margin=dict(t=35, b=40)
     )
 
     st.plotly_chart(fig1, use_container_width=True)
@@ -151,7 +157,8 @@ with col2:
         yaxis_title="Percentage of Passengers (%)",
         yaxis_range=[0, 100],
         height=340,
-        legend_title="Outcome"
+        legend_title="Outcome",
+        margin=dict(t=35, b=40)
     )
 
     st.plotly_chart(fig2, use_container_width=True)
@@ -178,8 +185,10 @@ with col3:
         text="Passengers",
         color="Port",
         color_discrete_sequence=[
-            "#457B9D", "#A8DADC",
-            "#1D3557", "#F4A261"
+            "#457B9D",
+            "#A8DADC",
+            "#1D3557",
+            "#F4A261"
         ]
     )
 
@@ -187,7 +196,8 @@ with col3:
         xaxis_title="Number of Passengers",
         yaxis_title="Boarding Port",
         showlegend=False,
-        height=340
+        height=340,
+        margin=dict(t=35, b=40)
     )
 
     st.plotly_chart(fig3, use_container_width=True)
@@ -212,7 +222,9 @@ with col4:
         color_discrete_map=colors,
         category_orders={
             "Family Group": [
-                "Alone", "Small Family", "Large Family"
+                "Alone",
+                "Small Family",
+                "Large Family"
             ]
         }
     )
@@ -221,9 +233,11 @@ with col4:
         xaxis_title="Family Group",
         yaxis_title="Number of Passengers",
         height=340,
-        legend_title="Outcome"
+        legend_title="Outcome",
+        margin=dict(t=35, b=40)
     )
 
     st.plotly_chart(fig4, use_container_width=True)
 
+# Data source
 st.caption("Dataset Source: Kaggle Titanic Dataset")
