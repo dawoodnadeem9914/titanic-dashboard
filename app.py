@@ -26,14 +26,14 @@ df = df[df["Pclass"].isin(classes)]
 st.title("Passengers & Survival Patterns")
 st.write("Explore how gender, class and age affected survival.")
 
-# Check if data is available
 if df.empty:
-    st.warning("Please select a passenger class.")
+    st.warning("Please select at least one passenger class.")
     st.stop()
 
 # Key numbers
 total = len(df)
-survivors = df["Survived"].sum()
+survivors = int(df["Survived"].sum())
+died = total - survivors
 rate = survivors / total * 100
 
 a, b, c = st.columns(3)
@@ -50,109 +50,142 @@ df["Survival Status"] = df["Survived"].map({
     1: "Survived"
 })
 
-# Chart 1 and Chart 2
+colors = {
+    "Died": "#FF6B5A",
+    "Survived": "#35B779"
+}
+
+# First row
 col1, col2 = st.columns(2)
 
-# Chart 1: Survival Rate by Gender
+# Chart 1: Overall Survival
 with col1:
-    st.subheader("Survival Rate by Gender")
+    st.subheader("Overall Survival")
 
-    gender_data = (
-        df.groupby("Sex")["Survived"]
-        .mean()
-        .reset_index()
-    )
+    survival_data = pd.DataFrame({
+        "Status": ["Survived", "Died"],
+        "Passengers": [survivors, died]
+    })
 
-    gender_data["Survival Rate"] = (
-        gender_data["Survived"] * 100
-    )
-
-    fig1 = px.bar(
-        gender_data,
-        x="Survival Rate",
-        y="Sex",
-        orientation="h",
-        text="Survival Rate",
-        color="Sex",
-        color_discrete_map={
-            "female": "#B07CC6",
-            "male": "#55A6D9"
-        }
+    fig1 = px.pie(
+        survival_data,
+        names="Status",
+        values="Passengers",
+        hole=0.55,
+        color="Status",
+        color_discrete_map=colors
     )
 
     fig1.update_traces(
-        texttemplate="%{text:.1f}%",
-        textposition="outside"
+        textinfo="label+percent",
+        textposition="inside"
     )
 
     fig1.update_layout(
-        xaxis_title="Survival Rate (%)",
-        yaxis_title="Gender",
         showlegend=False,
-        xaxis_range=[0, 100]
+        margin=dict(t=30, b=20)
     )
 
     st.plotly_chart(fig1, use_container_width=True)
 
-# Chart 2: Survival Rate by Class
+# Chart 2: Survival by Gender
 with col2:
-    st.subheader("Survival Rate by Class")
+    st.subheader("Survival by Gender")
 
-    class_data = (
-        df.groupby("Pclass")["Survived"]
-        .mean()
-        .reset_index()
-    )
-
-    class_data["Survival Rate"] = (
-        class_data["Survived"] * 100
+    gender_data = (
+        df.groupby(["Sex", "Survival Status"])
+        .size()
+        .reset_index(name="Passengers")
     )
 
     fig2 = px.bar(
-        class_data,
-        x="Pclass",
-        y="Survival Rate",
-        text="Survival Rate",
-        color="Survival Rate",
-        color_continuous_scale="Purples"
+        gender_data,
+        x="Sex",
+        y="Passengers",
+        color="Survival Status",
+        barmode="group",
+        text="Passengers",
+        color_discrete_map=colors,
+        category_orders={
+            "Survival Status": ["Died", "Survived"]
+        }
     )
 
     fig2.update_traces(
-        texttemplate="%{text:.1f}%",
         textposition="outside"
     )
 
     fig2.update_layout(
-        xaxis_title="Passenger Class",
-        yaxis_title="Survival Rate (%)",
-        coloraxis_showscale=False,
-        yaxis_range=[0, 100]
+        xaxis_title="Gender",
+        yaxis_title="Number of Passengers",
+        legend_title="Status",
+        margin=dict(t=30, b=20)
     )
 
     st.plotly_chart(fig2, use_container_width=True)
 
-# Chart 3: Age Distribution
-st.subheader("Age Distribution by Survival")
+# Second row
+col3, col4 = st.columns(2)
 
-fig3 = px.box(
-    df.dropna(subset=["Age"]),
-    x="Survival Status",
-    y="Age",
-    color="Survival Status",
-    color_discrete_map={
-        "Died": "#FF7058",
-        "Survived": "#35B779"
-    },
-    points="outliers"
-)
+# Chart 3: Survival by Class
+with col3:
+    st.subheader("Survival by Passenger Class")
 
-fig3.update_layout(
-    xaxis_title="Survival Status",
-    yaxis_title="Age",
-    showlegend=False
-)
+    class_data = (
+        df.groupby(["Pclass", "Survival Status"])
+        .size()
+        .reset_index(name="Passengers")
+    )
 
-st.plotly_chart(fig3, use_container_width=True)
+    fig3 = px.bar(
+        class_data,
+        x="Pclass",
+        y="Passengers",
+        color="Survival Status",
+        barmode="group",
+        text="Passengers",
+        color_discrete_map=colors,
+        category_orders={
+            "Survival Status": ["Died", "Survived"]
+        }
+    )
+
+    fig3.update_traces(
+        textposition="outside"
+    )
+
+    fig3.update_layout(
+        xaxis_title="Passenger Class",
+        yaxis_title="Number of Passengers",
+        legend_title="Status",
+        margin=dict(t=30, b=20)
+    )
+
+    st.plotly_chart(fig3, use_container_width=True)
+
+# Chart 4: Age Distribution
+with col4:
+    st.subheader("Age Distribution")
+
+    age_data = df.dropna(subset=["Age"])
+
+    fig4 = px.histogram(
+        age_data,
+        x="Age",
+        color="Survival Status",
+        barmode="group",
+        nbins=20,
+        color_discrete_map=colors
+    )
+
+    fig4.update_layout(
+        xaxis_title="Age",
+        yaxis_title="Number of Passengers",
+        legend_title="Status",
+        margin=dict(t=30, b=20)
+    )
+
+    st.plotly_chart(fig4, use_container_width=True)
 
 # Data source
 st.caption("Source: Kaggle Titanic Dataset")
